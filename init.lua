@@ -1,0 +1,11 @@
+gpio.mode(0,gpio.OUTPUT)
+gpio.mode(1,gpio.OUTPUT)
+gpio.mode(2,gpio.OUTPUT)
+gpio.mode(3,gpio.OUTPUT) 
+
+gpio.write(0,gpio.LOW)
+gpio.write(1,gpio.LOW)
+gpio.write(2,gpio.LOW)
+gpio.write(3,gpio.LOW)
+tmr.delay(1000*1000)
+require "trcnodemcu" mainserver()

@@ -1,52 +1,40 @@
-pumppin = 3
-flag_pumpon = 9
-function gettemphum()
-  pin = 5
-  status,temp,humi,temp_dec, humi_dec = dht.read(pin)
-  if status == dht.OK then
-    return 0,temp,humi
-  else
-    return 1,0,0
-  end
-end
-function pumpon()
-	gpio.mode(pumppin,gpio.OUTPUT) 
-	gpio.write(pumppin,gpio.HIGH) 
-	print("pumpon") 
-end
-function pumpoff() 
-	gpio.mode(pumppin,gpio.OUTPUT) 
-	gpio.write(pumppin,gpio.LOW) 
-	print("pumpoff") 
-end
-function pumpondeal() 
-  if(flag_pumpon ~= 1)then
-    pumpon()
-    flag_pumpon = 1
-    pumpontimer = tmr.create()
-    -- 五小时内浇过水，就不用浇水了
-    pumpontimer:register(1000*60*60*5, tmr.ALARM_SINGLE, function() flag_pumpon = 0 end)
-    pumpontimer:start()
-  end
-end
+require"pumpmodule"
+require"temperture_humidity"
+
 gbtp = 0
 gbrh = 0
+  -- body
+
 function  mainserver()
-  ret,tp1,rh1 = gettemphum()
+  ret,tpin,rhin = temperture_humidity.ReadTemperHumidity()
   if(ret == 0) then
-  	if gbtp ~=tp1 and gbrh ~= rh1 then
-    	print(tp1,rh1)
-			gbtp = tp1
-			gbrh = rh1
+    if gbtp ~= tpin and gbrh ~= rhin then
+      print(tpin,rhin)
+      gbtp = tpin
+      gbrh = rhin
     end
-    if(rh1 < 67)then --湿度小于67%，浇一次水
-      pumpondeal()
+    
+    if(rhin < 67) then --湿度小于67%，浇一次水,持续两秒钟
+      pumpmodule.WaterPumpOn()
       pumpofftime = tmr.create()
-      pumpofftime:register(2000,tmr.ALARM_SINGLE, function() pumpoff() end)
+      pumpofftime:register(2000,tmr.ALARM_SINGLE, function() pumpmodule.WaterPumpOff() end)
       pumpofftime:start()  
+    end
+    if(tpin > 30) then
+      pumpmodule.AirPumOn()
+      airpumtime = tmr.create()
+      airpumtime:register(2000,tmr.ALARM_SINGLE, function() pumpmodule.AirPumOff() end)
+      airpumtime:start()  
     end
   end
 end
+
+WaterPump = Pump:new(nil,3,2)
+
+pumpmodule.WaterPumpInit(3,3)--3小时之内不用浇水，管脚使用3
+temperture_humidity.DhtInit(5,11)
+-- pumpmodule.AirPumInit(8)
+
 maintimer = tmr.create()
 maintimer:register(5000, tmr.ALARM_AUTO,function() mainserver()end)
 maintimer:start()
